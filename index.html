@@ -1,0 +1,661 @@
+!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RocketRide | AgriGuard Precision Agriculture & LoRa Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+      <div class="brand-section">
+        <div class="brand-logo">
+          <div class="rocket-icon">🌱</div>
+        </div>
+        <div class="brand-titles">
+          <div class="brand-name">RocketRide <span class="brand-badge">AgriGuard 2.0</span></div>
+          <div class="brand-sub">LoRa SX1278 Precision Agriculture & Autonomous Irrigation Pipeline</div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs" role="tablist">
+        <button class="nav-tab active" id="tab-agri-btn" onclick="switchTab('agri')">
+          <span class="tab-icon">🌾</span> AgriGuard Dashboard
+        </button>
+        <button class="nav-tab" id="tab-studio-btn" onclick="switchTab('studio')">
+          <span class="tab-icon">⚡</span> Pipeline Studio
+        </button>
+        <button class="nav-tab" id="tab-batch-btn" onclick="switchTab('batch')">
+          <span class="tab-icon">📦</span> Batch Benchmarks
+        </button>
+        <button class="nav-tab" id="tab-sdk-btn" onclick="switchTab('sdk')">
+          <span class="tab-icon">💻</span> SDK & .pipe
+        </button>
+        
+      </nav>
+
+      <!-- Engine & IoT Status -->
+      <div class="nav-actions">
+        <div class="lora-status-pill" id="lora-live-pill" title="LoRa SX1278 Gateway status">
+          <span class="pulse-dot"></span>
+          <span class="lora-text" id="lora-text-status">LoRa Gateway: Live (433MHz)</span>
+        </div>
+        <div class="engine-mode-pill">
+          <select id="engine-mode-select" onchange="changeEngineMode(this.value)" class="mode-dropdown" title="Select Engine Mode">
+            <option value="local">Local (ws://localhost:5565)</option>
+            <option value="cloud">Cloud (wss://cloud.rocketride.ai)</option>
+            <option value="ollama">Ollama Llama 3.2 (Zero Cost)</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="fetchLiveAgritechData()">
+          <span>🔄 Sync Live IoT Data</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- ================= TAB 1: AGRIGUARD IOT LIVE DASHBOARD ================= -->
+      <section id="view-agri" class="tab-view active">
+        <div class="agri-dashboard-layout">
+          
+          <!-- Live Telemetry Banner -->
+          <div class="live-source-banner">
+            <div class="source-info">
+              <span class="source-badge">LIVE IOT FEED</span>
+              <strong>Target URL:</strong> <a href="https://agritechpro.space/data.json" target="_blank" class="link-styled">https://agritechpro.space/data.json</a>
+              <span class="last-sync-tag" id="last-sync-time">Last Sync: 15-03-2026 11:34:42 AM</span>
+            </div>
+            <div class="feed-controls">
+              <label class="toggle-switch">
+                <input type="checkbox" id="chk-auto-poll" checked onchange="toggleAutoPoll(this.checked)">
+                <span class="slider"></span>
+              </label>
+              <span class="toggle-label">Auto-Poll (Every 8s)</span>
+            </div>
+          </div>
+
+          <!-- 4 Core Sensor Telemetry Gauges Grid -->
+          <div class="sensor-gauges-grid">
+            <!-- Soil Moisture Card -->
+            <div class="gauge-card" id="card-soil-moisture">
+              <div class="gauge-header">
+                <span class="sensor-name">Soil Moisture (A0)</span>
+                <span class="sensor-icon">💧</span>
+              </div>
+              <div class="gauge-body">
+                <div class="gauge-value" id="val-soil-moisture">0%</div>
+                <div class="gauge-bar-wrapper">
+                  <div class="gauge-bar" id="bar-soil-moisture" style="width: 0%; background: var(--accent-rose);"></div>
+                </div>
+                <div class="gauge-status-text" id="status-soil-moisture">Critical Drought / Dry Probe</div>
+              </div>
+              <div class="gauge-footer">
+                <span>Optimal: 50% - 75%</span>
+                <span class="calib-tag">SX1278 Analog mapped</span>
+              </div>
+            </div>
+
+            <!-- Soil Temperature Card -->
+            <div class="gauge-card" id="card-soil-temp">
+              <div class="gauge-header">
+                <span class="sensor-name">Soil Temp (DS18B20)</span>
+                <span class="sensor-icon">🌡️</span>
+              </div>
+              <div class="gauge-body">
+                <div class="gauge-value" id="val-soil-temp">31.63 °C</div>
+                <div class="gauge-bar-wrapper">
+                  <div class="gauge-bar" id="bar-soil-temp" style="width: 63%; background: var(--accent-amber);"></div>
+                </div>
+                <div class="gauge-status-text" id="status-soil-temp">Warm Root Zone</div>
+              </div>
+              <div class="gauge-footer">
+                <span>Optimal: 20°C - 28°C</span>
+                <span class="calib-tag">OneWire D3</span>
+              </div>
+            </div>
+
+            <!-- Air Temperature Card -->
+            <div class="gauge-card" id="card-air-temp">
+              <div class="gauge-header">
+                <span class="sensor-name">Air Temp (DHT11)</span>
+                <span class="sensor-icon">☀️</span>
+              </div>
+              <div class="gauge-body">
+                <div class="gauge-value" id="val-air-temp">32.7 °C</div>
+                <div class="gauge-bar-wrapper">
+                  <div class="gauge-bar" id="bar-air-temp" style="width: 65%; background: var(--accent-amber);"></div>
+                </div>
+                <div class="gauge-status-text" id="status-air-temp">High Solar Irradiance</div>
+              </div>
+              <div class="gauge-footer">
+                <span>Optimal: 22°C - 30°C</span>
+                <span class="calib-tag">DHT Pin D4</span>
+              </div>
+            </div>
+
+            <!-- Air Humidity Card -->
+            <div class="gauge-card" id="card-humidity">
+              <div class="gauge-header">
+                <span class="sensor-name">Humidity (DHT11)</span>
+                <span class="sensor-icon">💨</span>
+              </div>
+              <div class="gauge-body">
+                <div class="gauge-value" id="val-humidity">32.1 %</div>
+                <div class="gauge-bar-wrapper">
+                  <div class="gauge-bar" id="bar-humidity" style="width: 32%; background: var(--accent-cyan);"></div>
+                </div>
+                <div class="gauge-status-text" id="status-humidity">Low Relative Humidity</div>
+              </div>
+              <div class="gauge-footer">
+                <span>VPD Index: <strong id="val-vpd">3.36 kPa</strong></span>
+                <span class="calib-tag">Transpiration High</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Diagnostic & Human Gate Grid -->
+          <div class="agri-control-grid">
+            <!-- Left Column: Multi-Agent Agronomic Prescriptions -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <span class="card-tag">Step 1: Multi-Agent Agronomic Engine</span>
+                  <h3>Crop Health & Irrigation Prescription</h3>
+                </div>
+                <div class="risk-score-display">
+                  <div class="risk-number" id="agri-risk-score">0.95</div>
+                  <div class="risk-label" id="agri-risk-label">CRITICAL DROUGHT</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <!-- Anomaly Flags -->
+                <div class="anomaly-section">
+                  <label class="section-label">Active Agronomic Anomaly & Stress Flags</label>
+                  <div class="flag-list" id="agri-flags-container">
+                    <div class="flag-pill danger">
+                      <span class="icon">🚨</span>
+                      <div>
+                        <strong>CRITICAL_SOIL_DROUGHT:</strong>
+                        <span>Soil moisture is at 0% (below 15% wilting point). Immediate irrigation required.</span>
+                      </div>
+                    </div>
+                    <div class="flag-pill warning">
+                      <span class="icon">⚠️</span>
+                      <div>
+                        <strong>HIGH_VPD_TRANSPIRATION_STRESS:</strong>
+                        <span>Vapor Pressure Deficit at 3.36 kPa. High heat (32.7°C) & low humidity (32.1%).</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Prescription Box -->
+                <div class="prescription-box mt-3">
+                  <div class="presc-header">
+                    <span class="presc-title">💧 Precision Irrigation Prescription</span>
+                    <span class="badge-mini">Drip Zone A</span>
+                  </div>
+                  <div class="presc-details-grid">
+                    <div class="presc-item">
+                      <span class="p-lbl">Water Volume</span>
+                      <span class="p-val" id="presc-vol">3,200 Liters</span>
+                    </div>
+                    <div class="presc-item">
+                      <span class="p-lbl">Pump Run Duration</span>
+                      <span class="p-val" id="presc-time">45 Minutes</span>
+                    </div>
+                    <div class="presc-item">
+                      <span class="p-lbl">Target Soil Zone</span>
+                      <span class="p-val">Root Depth (0-20 cm)</span>
+                    </div>
+                    <div class="presc-item">
+                      <span class="p-lbl">Recommended Timing</span>
+                      <span class="p-val">Immediate Evening Cycle</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Farmer WhatsApp / Telephony Dispatch Tool (Out-of-band) -->
+                <div class="oob-card mt-3">
+                  <div class="oob-header">
+                    <div class="oob-title">
+                      <span class="pulse-phone">📲</span>
+                      <div>
+                        <strong>Out-of-Band Farmer Advisory Dispatcher</strong>
+                        <span>Automated WhatsApp / IVR alert sent to farmer's registered phone</span>
+                      </div>
+                    </div>
+                    <button class="btn btn-xs btn-accent" onclick="simulateFarmerAlert()">Trigger Test SMS</button>
+                  </div>
+                  <div class="oob-transcript" id="farmer-alert-transcript">
+                    <div class="call-line system">[SMS/WhatsApp Gateway] Connected to +91-98841-XXXXX (Farmer Desk)...</div>
+                    <div class="call-line bot">[AgriGuard Bot] "URGENT: Field Zone A soil moisture reached 0%. 3,200L irrigation cycle queued. Please authorize on dashboard."</div>
+                  </div>
+                </div>
+
+                <!-- LLM Reasoning Box -->
+                <div class="reasoning-box mt-3">
+                  <div class="reasoning-header">
+                    <span>🧠 Llama 3.2 / GPT-4o Agronomist Reasoning</span>
+                    <span class="badge-mini">Zero API Cost on Ollama</span>
+                  </div>
+                  <p class="reasoning-text" id="agri-reasoning-text">
+                    "Severe soil water deficit detected. At 32.7°C ambient temperature and 32.1% relative humidity, stomatal conductance will halt within 2 hours without supplemental irrigation. Recommended volumetric application of 3,200L via Solenoid Valve 1."
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Human-in-the-Loop Farmer Release Gate -->
+            <div class="card highlight-card">
+              <div class="card-header">
+                <div>
+                  <span class="card-tag">Step 2: Human-in-the-Loop Release Gate</span>
+                  <h3>Farmer / Agronomist Sign-Off Desk</h3>
+                </div>
+                <span class="gate-status-badge" id="agri-gate-status">⏳ HELD FOR FARMER SIGN-OFF</span>
+              </div>
+              <div class="card-body">
+                <p class="gate-desc">
+                  This intervention exceeds autonomous threshold (Risk: <strong>0.95 &ge; 0.65</strong> or Volume &gt; <strong>2,500L</strong>). RocketRide policy halts IoT valve actuation until an authorized farmer or agronomist signs off.
+                </p>
+                
+                <!-- Quick Sensor Injectors for Testing -->
+                <div class="quick-samples-bar mb-3">
+                  <span class="lbl-small">Test Condition Presets:</span>
+                  <button class="btn btn-xs btn-outline" onclick="injectTestPreset('drought')">🚨 0% Drought (Live Current)</button>
+                  <button class="btn btn-xs btn-outline" onclick="injectTestPreset('optimal')">✅ 65% Optimal Field</button>
+                  <button class="btn btn-xs btn-outline" onclick="injectTestPreset('waterlog')">🌊 97% Waterlogged</button>
+                </div>
+
+                <div class="signoff-controls">
+                  <div class="form-group mb-2">
+                    <label>Farmer Sign-Off Notes / Agronomist Remarks</label>
+                    <input type="text" id="farmer-signoff-notes" class="input-ctrl" placeholder="e.g., Checked drip manifold. Confirmed pump startup for 45 mins.">
+                  </div>
+                  <div class="btn-group">
+                    <button class="btn btn-danger" onclick="submitFarmerAction('REJECT_IRRIGATION')">
+                      🚫 Cancel & Hold Pump
+                    </button>
+                    <button class="btn btn-warning" onclick="submitFarmerAction('ADJUST_DURATION')">
+                      ⏱️ Reduce to 20 Mins
+                    </button>
+                    <button class="btn btn-success" onclick="submitFarmerAction('APPROVE_AND_DISPATCH')">
+                      ✓ Authorize & Open Valve
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Audit Log -->
+                <div class="audit-log mt-3">
+                  <label class="section-label">Field Actuation Audit Trail</label>
+                  <div class="audit-trail-list" id="agri-audit-trail">
+                    <div class="audit-item">
+                      <span class="time">11:34:42</span>
+                      <span class="event">System held 3,200L irrigation prescription (Soil: 0%, Temp: 32.7°C).</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: PIPELINE VISUAL STUDIO ================= -->
+      <section id="view-studio" class="tab-view">
+        <div class="studio-container">
+          <!-- Left Sidebar: Templates -->
+          <aside class="studio-sidebar">
+            <div class="sidebar-block">
+              <div class="block-header">
+                <h3>RocketRide Pipelines</h3>
+                <span class="badge-mini">Preset</span>
+              </div>
+              <div class="template-list">
+                <button class="template-item active" onclick="loadTemplate('agri_irrigation')">
+                  <div class="item-icon">🌾</div>
+                  <div class="item-info">
+                    <strong>AgriGuard Irrigation</strong>
+                    <span>LoRa Telemetry & Valve Gate</span>
+                  </div>
+                </button>
+                <button class="template-item" onclick="loadTemplate('crop_disease')">
+                  <div class="item-icon">🍃</div>
+                  <div class="item-info">
+                    <strong>Disease & Blight Sentinel</strong>
+                    <span>VPD & Pathogen Risk Forecaster</span>
+                  </div>
+                </button>
+                <button class="template-item" onclick="loadTemplate('ap_fraud')">
+                  <div class="item-icon">🛡️</div>
+                  <div class="item-info">
+                    <strong>AP Fraud Sentinel</strong>
+                    <span>Invoice Anomaly & Banking Hold</span>
+                  </div>
+                </button>
+                <button class="template-item" onclick="loadTemplate('chargeback')">
+                  <div class="item-icon">💳</div>
+                  <div class="item-info">
+                    <strong>Chargeback Defender</strong>
+                    <span>Payment Dispute Pack Synthesizer</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Wire Legend (Buildathon Section 3) -->
+            <div class="sidebar-block wire-legend-card">
+              <h4>RocketRide Wire Concept</h4>
+              <div class="wire-item">
+                <div class="wire-sample wire-solid"></div>
+                <div class="wire-desc">
+                  <strong>Data Lane (Solid Wire)</strong>
+                  <span>Square sockets (L/R). Data flows in order.</span>
+                </div>
+              </div>
+              <div class="wire-item">
+                <div class="wire-sample wire-dashed"></div>
+                <div class="wire-desc">
+                  <strong>Invoke Connection (Dashed)</strong>
+                  <span>Diamond sockets (Bottom). Agent calls capability.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pipeline Actions -->
+            <div class="sidebar-block">
+              <div class="block-header">
+                <h3>Pipeline Actions</h3>
+              </div>
+              <div class="action-grid">
+                <button class="btn btn-outline btn-full" onclick="downloadActivePipe()">
+                  ⬇ Download .pipe
+                </button>
+                <button class="btn btn-outline btn-full" onclick="copyActivePipeJson()">
+                  📋 Copy JSON
+                </button>
+                <button class="btn btn-outline btn-full" onclick="triggerNodeLayoutReset()">
+                  🔄 Re-Align Canvas
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Center Canvas Area -->
+          <div class="canvas-wrapper">
+            <div class="canvas-toolbar">
+              <div class="canvas-meta">
+                <h2 id="pipeline-title-display">AgriGuard Autonomous Irrigation Pipeline</h2>
+                <span class="pipeline-status-tag" id="pipeline-status-badge">● Engine Ready</span>
+              </div>
+              <div class="canvas-controls">
+                <button class="btn btn-secondary btn-sm" onclick="stepSimulation()">
+                  ⏭ Step Once
+                </button>
+                <button class="btn btn-accent btn-sm" id="btn-play-sim" onclick="togglePlaySimulation()">
+                  ▶ Simulate Run
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="clearLiveTraces()">
+                  ✕ Clear Traces
+                </button>
+              </div>
+            </div>
+
+            <!-- Interactive Canvas -->
+            <div class="visual-canvas" id="visual-canvas-stage">
+              <svg class="wires-layer" id="canvas-wires-svg"></svg>
+              <div class="nodes-layer" id="canvas-nodes-container">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+            <!-- Live Trace Telemetry Bar -->
+            <div class="trace-telemetry-bar">
+              <div class="telemetry-item">
+                <span class="t-label">Status</span>
+                <span class="t-val highlight" id="t-exec-status">Idle</span>
+              </div>
+              <div class="telemetry-item">
+                <span class="t-label">Active Node</span>
+                <span class="t-val" id="t-active-node">-</span>
+              </div>
+              <div class="telemetry-item">
+                <span class="t-label">Tokens Used</span>
+                <span class="t-val" id="t-tokens-count">0</span>
+              </div>
+              <div class="telemetry-item">
+                <span class="t-label">Engine Latency</span>
+                <span class="t-val" id="t-latency-val">0 ms</span>
+              </div>
+              <div class="telemetry-item">
+                <span class="t-label">API Cost / Ollama</span>
+                <span class="t-val success" id="t-cost-val">$0.00 (Ollama Local)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Sidebar: Inspector & Traces -->
+          <aside class="studio-inspector">
+            <div class="inspector-section">
+              <h3>Node Inspector</h3>
+              <div id="inspector-content" class="inspector-card">
+                <div class="empty-state-hint">Click any node on the canvas to inspect its config, data lanes, and invoke capabilities.</div>
+              </div>
+            </div>
+
+            <div class="inspector-section flex-1">
+              <div class="block-header">
+                <h3>Live Execution Trace</h3>
+                <span class="live-pulse">LIVE</span>
+              </div>
+              <div class="trace-console" id="trace-console-log">
+                <div class="log-entry info">[Engine] RocketRide WebSocket connected on ws://localhost:5565</div>
+                <div class="log-entry info">[Pipeline] Loaded agritech_autonomous_irrigation.pipe with 8 nodes</div>
+                <div class="log-entry">[Ready] Waiting for LoRa telemetry ingest trigger...</div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: BATCH BENCHMARKS ================= -->
+      <section id="view-batch" class="tab-view">
+        <div class="batch-page">
+          <div class="batch-header-card">
+            <div>
+              <h2>Batch Processing Stress Test & Cost Benchmark</h2>
+              <p>Meets RocketRide Buildathon Section 12-14: Ingests 20+ live sensor cycles from <code>https://agritechpro.space/data.json</code>.</p>
+            </div>
+            <div class="batch-cta">
+              <button class="btn btn-primary" id="btn-run-full-batch" onclick="executeBatchRunner()">
+                ⚡ Benchmark Live Sensor Archive (20 Records)
+              </button>
+              <button class="btn btn-secondary" onclick="executeSyntheticVolumeTest(100)">
+                🚀 100-Record High-Volume Test
+              </button>
+            </div>
+          </div>
+
+          <!-- Metrics Grid -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-icon">📦</div>
+              <div class="metric-info">
+                <span class="m-title">Total Records Ingested</span>
+                <span class="m-val" id="m-batch-total">20</span>
+                <span class="m-sub">Streamed via client.send()</span>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon">⏱️</div>
+              <div class="metric-info">
+                <span class="m-title">Total Wall-Clock Time</span>
+                <span class="m-val" id="m-batch-time">7.60s</span>
+                <span class="m-sub">Avg 0.38s per sensor cycle</span>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon">🎯</div>
+              <div class="metric-info">
+                <span class="m-title">Auto vs Held Split</span>
+                <span class="m-val" id="m-batch-split">0 Auto / 20 Held</span>
+                <span class="m-sub">Critical drought intervention</span>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon">💰</div>
+              <div class="metric-info">
+                <span class="m-title">Ollama Local vs Cloud</span>
+                <span class="m-val success" id="m-batch-cost">$0.00 vs $0.055</span>
+                <span class="m-sub">Zero API cost on local llama3.2</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Batch Table -->
+          <div class="card mt-3">
+            <div class="card-header">
+              <h3>Live Ingested Sensor Telemetry Stream</h3>
+              <span class="badge-mini" id="batch-progress-badge">Archive (20/20)</span>
+            </div>
+            <div class="card-body p-0">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Time</th>
+                    <th>Soil Moisture</th>
+                    <th>Soil Temp</th>
+                    <th>Air Temp</th>
+                    <th>Humidity</th>
+                    <th>Risk Score</th>
+                    <th>Prescription</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="batch-table-body">
+                  <!-- Dynamically loaded from data.json -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 4: SDK & CODE CENTER ================= -->
+      <section id="view-sdk" class="tab-view">
+        <div class="code-center-container">
+          <div class="code-header">
+            <div>
+              <h2>RocketRide SDK Integration & Pipeline JSON</h2>
+              <p>Compliant with Buildathon Section 4 (.pipe format) and Section 6 (Python & TypeScript SDKs).</p>
+            </div>
+            <div class="code-switch-tabs">
+              <button class="code-tab active" onclick="switchCodeView('python')">Python SDK (app.py)</button>
+              <button class="code-tab" onclick="switchCodeView('typescript')">TypeScript SDK</button>
+              <button class="code-tab" onclick="switchCodeView('pipe_json')">.pipe JSON Format</button>
+              <button class="code-tab" onclick="switchCodeView('env')">.env.example</button>
+            </div>
+          </div>
+
+          <div class="code-editor-card">
+            <div class="code-bar">
+              <span class="code-filename" id="code-file-label">app.py</span>
+              <button class="btn btn-xs btn-outline" onclick="copyDisplayedCode()">Copy Snippet</button>
+            </div>
+            <pre class="code-block"><code id="code-display-area" class="text-mono"></code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 5: BUILDATHON GUIDE ================= -->
+      <section id="view-guide" class="tab-view">
+        <div class="guide-container">
+          <div class="guide-header">
+            <h2>RocketRide Buildathon Submission Ready Checklist</h2>
+            <p>Directly verified against all criteria in the <em>From Idea to Million Dollar App</em> specification.</p>
+          </div>
+
+          <div class="checklist-grid">
+            <div class="check-card completed">
+              <div class="chk-header">
+                <span class="chk-box">✓</span>
+                <strong>1. Is it a real app?</strong>
+              </div>
+              <p>Publishable precision agriculture copilot ingesting live LoRa SX1278 sensors from <code>https://agritechpro.space/data.json</code>.</p>
+            </div>
+
+            <div class="check-card completed">
+              <div class="chk-header">
+                <span class="chk-box">✓</span>
+                <strong>2. Would someone pay?</strong>
+              </div>
+              <p>Commercial farms, orchards, and greenhouses paying for 25-40% water savings and crop loss prevention.</p>
+            </div>
+
+            <div class="check-card completed">
+              <div class="chk-header">
+                <span class="chk-box">✓</span>
+                <strong>3. Is RocketRide the engine?</strong>
+              </div>
+              <p>Multi-agent pipeline with Data Lanes (solid lines) and Invoke Connections (dashed lines), not a single LLM prompt.</p>
+            </div>
+
+            <div class="check-card completed">
+              <div class="chk-header">
+                <span class="chk-box">✓</span>
+                <strong>4. Does it hold up at volume?</strong>
+              </div>
+              <p>Includes batch stress tester processing 20+ sensor records with live throughput and wall-clock benchmarks.</p>
+            </div>
+
+            <div class="check-card completed">
+              <div class="chk-header">
+                <span class="chk-box">✓</span>
+                <strong>5. Does it know when to stop?</strong>
+              </div>
+              <p>Confidence lines (0.65 threshold) and executive Human-in-the-Loop gate with farmer audit trail.</p>
+            </div>
+
+            <div class="check-card completed">
+              <div class="chk-header">
+                <span class="chk-box">✓</span>
+                <strong>6. Predictable Cost per Run</strong>
+              </div>
+              <p>Live token usage tracking. ~1,380 tokens / $0.0027 cloud, or <strong>$0.00</strong> on local Ollama Llama 3.2.</p>
+            </div>
+
+            <div class="check-card completed">
+              <div class="chk-header">
+                <span class="chk-box">✓</span>
+                <strong>7. Clean SDK & No Orphans</strong>
+              </div>
+              <p>Strictly implements <code>client.use()</code>, <code>client.send()</code>, and mandatory <code>client.terminate()</code>.</p>
+            </div>
+
+            <div class="check-card completed">
+              <div class="chk-header">
+                <span class="chk-box">✓</span>
+                <strong>8. Promo Code & Discord Ready</strong>
+              </div>
+              <p>Redeem <code>INDIAHACK</code> on cloud.rocketride.ai; join #support on Discord.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
